@@ -20,8 +20,8 @@ jobs:
 
       - uses: aws-actions/amazon-ecr-login@v2
 
-      - run: docker build -t ai .
+      - run: docker build -t dgu-cap-ai .
 
-      - run: docker tag ai:latest ${{ secrets.ECR_REGISTRY }}/ai:latest
+      - run: docker tag dgu-cap-ai:latest ${{ secrets.ECR_REGISTRY }}/dgu-cap-ai:latest
 
-      - run: docker push ${{ secrets.ECR_REGISTRY }}/ai:latest
+      - run: docker push ${{ secrets.ECR_REGISTRY }}/dgu-cap-ai:latest
