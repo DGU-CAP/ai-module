@@ -1,7 +1,7 @@
 # AI Module - 이상 탐지 및 챗봇 모듈
 
 ## 프로젝트 소개
-Kubernetes 클러스터 메트릭 기반 이상 탐지 및 AI 챗봇 기능을 제공하는 FastAPI 서버입니다.
+Kubernetes 클러스터 메트릭 기반 이상 탐지 및 RAG기반 LLM을 통한 분석 기능을 제공하는 FastAPI 서버입니다.
 
 ## 기술 스택
 - Python 3.11
