@@ -1,2 +1,9 @@
 fastapi
 uvicorn[standard]
+pydantic
+pydantic-settings
+anthropic
+scikit-learn
+numpy
+chromadb
+python-dotenv
