@@ -29,7 +29,7 @@ chroma_db/
 *.pkl
 *.joblib
 *.h5
-models/
+/models/
 
 # 로그
 *.log
