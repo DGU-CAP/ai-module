@@ -29,7 +29,7 @@ Frontend
 
 ## 기술 스택
 
-- Python 3.11
+- Python 3.12
 - FastAPI
 - uvicorn
 - scikit-learn (Isolation Forest)
