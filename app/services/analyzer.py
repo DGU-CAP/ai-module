@@ -1,53 +1,67 @@
+import asyncio
 from app.models.request import AnalyzeRequest
 from app.models.response import AnalyzeResponse
-from app.services import zscore_detector, ml_detector, rag_service, llm_service
+from app.services.zscore_detector import ZScoreDetector
+from app.services.ml_detector import MLDetector
+from app.services.rag_service import RAGService
+from app.services.llm_service import LLMService
 
 
-def analyze(req: AnalyzeRequest) -> AnalyzeResponse:
-    """전체 분석 파이프라인을 오케스트레이션한다."""
+class AnalyzerService:
+    """
+    전체 분석 흐름을 조율하는 서비스.
 
-    # [2] 시계열 feature 추출
-    cpu_values = [p.value for p in req.cpuHistory]
-    memory_values = [p.value for p in req.memoryHistory]
-    error_rate_values = [p.value for p in req.errorRateHistory]
+    흐름:
+    1. z-score 탐지 + ML 탐지 (병렬)
+    2. RAG 유사 문서 검색
+    3. LLM 리포트 생성
+    """
 
-    # [3] z-score 기반 이상탐지
-    zscore_result = zscore_detector.detect(cpu_values, memory_values, error_rate_values)
+    def __init__(self):
+        self.zscore_detector = ZScoreDetector()
+        self.ml_detector = MLDetector()
+        self.rag_service = RAGService()
+        self.llm_service = LLMService()
 
-    # [4] ML 모델 기반 이상탐지
-    ml_result = ml_detector.detect(
-        cpu=req.cpu,
-        memory=req.memory,
-        error_rate=req.errorRate,
-        restarts=req.restarts,
-        cpu_history=cpu_values,
-        memory_history=memory_values,
-        error_rate_history=error_rate_values,
-        log_count=len(req.errorLogs),
-        event_count=len(req.k8sEvents),
-    )
+    async def analyze(self, request: AnalyzeRequest) -> AnalyzeResponse:
 
-    # [5] 로그·이벤트 기반 쿼리 생성
-    query = f"{req.anomalyType} {' '.join(req.k8sEvents)} {' '.join(req.errorLogs[:2])}"
+        # [1] z-score와 ML 탐지 — 서로 독립적이므로 병렬 실행
+        zscore_result, ml_result = await asyncio.gather(
+            asyncio.to_thread(self.zscore_detector.detect, request),
+            asyncio.to_thread(self.ml_detector.detect, request),
+        )
 
-    # [6] RAG 검색
-    similar_cases = rag_service.search(query)
+        # [2] RAG 검색 — z-score 결과 기반으로 쿼리 생성
+        similar_docs = await asyncio.to_thread(
+            self.rag_service.search, request, zscore_result, ml_result
+        )
 
-    # [7] LLM 리포트 생성
-    llm_result = llm_service.generate_report(
-        anomaly_type=req.anomalyType,
-        pod_name=req.podName,
-        namespace=req.namespace,
-        zscore_result=zscore_result,
-        ml_result=ml_result,
-        error_logs=req.errorLogs,
-        k8s_events=req.k8sEvents,
-        similar_cases=similar_cases,
-    )
+        # [3] LLM 리포트 생성 — 앞의 모든 결과를 컨텍스트로 전달
+        llm_result = await self.llm_service.generate(
+            request, zscore_result, ml_result, similar_docs
+        )
 
-    return AnalyzeResponse(
-        severity=llm_result["severity"],
-        aiAnalysis=llm_result["aiAnalysis"],
-        recommendation=llm_result["recommendation"],
-        similarCases=similar_cases,
-    )
+        # similarCases: RAG가 찾은 문서의 첫 줄(제목)만 요약해서 반환
+        similar_cases = self._summarize_docs(similar_docs)
+
+        return AnalyzeResponse(
+            severity=llm_result.severity,
+            aiAnalysis=llm_result.ai_analysis,
+            recommendation=llm_result.recommendation,
+            similarCases=similar_cases,
+        )
+
+    def _summarize_docs(self, docs: list[str]) -> list[str]:
+        """
+        RAG가 찾은 전체 문서 내용 대신
+        각 문서의 첫 줄(제목)만 추출해서 similarCases로 반환.
+        Spring Boot가 받는 응답을 간결하게 유지하기 위해서다.
+        """
+        summaries = []
+        for doc in docs:
+            first_line = doc.strip().split("\n")[0]
+            # 마크다운 헤더 기호 제거
+            first_line = first_line.lstrip("#").strip()
+            if first_line:
+                summaries.append(first_line)
+        return summaries

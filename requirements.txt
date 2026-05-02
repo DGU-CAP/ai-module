@@ -2,8 +2,8 @@ fastapi
 uvicorn[standard]
 pydantic
 pydantic-settings
-anthropic
-scikit-learn
 numpy
+scikit-learn
+openai
 chromadb
 python-dotenv

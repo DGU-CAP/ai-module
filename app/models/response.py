@@ -1,9 +1,17 @@
-from typing import List
 from pydantic import BaseModel
+from typing import List
+from enum import Enum
+
+
+class Severity(str, Enum):
+    CRITICAL = "CRITICAL"
+    HIGH = "HIGH"
+    MEDIUM = "MEDIUM"
+    LOW = "LOW"
 
 
 class AnalyzeResponse(BaseModel):
-    severity: str  # CRITICAL | HIGH | MEDIUM | LOW
+    severity: Severity
     aiAnalysis: str
     recommendation: str
-    similarCases: List[str]
+    similarCases: List[str] = []
