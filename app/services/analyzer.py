@@ -65,3 +65,7 @@ class AnalyzerService:
             if first_line:
                 summaries.append(first_line)
         return summaries
+
+
+# 싱글톤 인스턴스
+analyzer_service = AnalyzerService()

@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException
 from app.models.request import AnalyzeRequest
 from app.models.response import AnalyzeResponse
-from app.services.analyzer import AnalyzerService
+from app.services.analyzer import analyzer_service
 
 router = APIRouter()
 
@@ -17,8 +17,7 @@ async def analyze(request: AnalyzeRequest):
     3. LLM 리포트 생성
     """
     try:
-        service = AnalyzerService()
-        result = await service.analyze(request)
+        result = await analyzer_service.analyze(request)
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
