@@ -4,6 +4,7 @@ pydantic
 pydantic-settings
 numpy
 scikit-learn
+joblib
 openai
 chromadb
 python-dotenv
