@@ -41,6 +41,13 @@ class AnalyzeRequest(BaseModel):
 
     detectedAt: datetime
 
+    @field_validator("detectedAt", mode="before")
+    @classmethod
+    def parse_detected_at(cls, v):
+        if isinstance(v, list):
+            return datetime(*v[:6])
+        return v
+
     @field_validator("errorLogs")
     @classmethod
     def limit_error_logs(cls, v):
